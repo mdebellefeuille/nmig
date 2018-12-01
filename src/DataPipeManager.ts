@@ -61,7 +61,7 @@ function getSmallestDataChunkSizeInMb(conversion: Conversion): number {
 /**
  * Creates an array of indexes, that point to data chunks, that will be processed during current COPY operation.
  */
-function getChunksToLoad(conversion: Conversion): number[] {
+function fillBandwidth(conversion: Conversion): number[] {
     const dataChunkIndexes: number[] = [];
 
     // Loop through the data pool from the beginning to the end.
@@ -70,11 +70,9 @@ function getChunksToLoad(conversion: Conversion): number[] {
     for (let i: number = 0, bandwidth = 0; i < conversion._dataPool.length; ++i) {
         // Check if current chunk has already been marked as "processed".
         // If yes, then continue to the next iteration.
-        const dataChunk: any = conversion._dataPool[i];
-
-        if (dataChunk._processed === false) {
+        if (conversion._dataPool[i]._processed === false) {
             // Sum a size of data chunks, that are yet to be processed.
-            bandwidth += dataChunk._size_in_mb;
+            bandwidth += conversion._dataPool[i]._size_in_mb;
 
             if (conversion._dataChunkSize - bandwidth >= getSmallestDataChunkSizeInMb(conversion)) {
                 // Currently, the bandwidth is smaller than "data_chunk_size",
@@ -82,7 +80,7 @@ function getChunksToLoad(conversion: Conversion): number[] {
                 // is larger or equal to currently-smallest data chunk.
                 // This means, that more data chunks can be processed during current COPY operation.
                 dataChunkIndexes.push(i);
-                dataChunk._processed = true;
+                conversion._dataPool[i]._processed = true;
                 continue;
             }
 
@@ -91,14 +89,14 @@ function getChunksToLoad(conversion: Conversion): number[] {
                 // This means, that no more data chunks can be processed during current COPY operation.
                 // Current COPY operation will be performed with maximal possible bandwidth capacity.
                 dataChunkIndexes.push(i);
-                dataChunk._processed = true;
+                conversion._dataPool[i]._processed = true;
                 break;
             }
 
             // This data chunk will not be processed during current COPY operation, because when it is added
             // to the bandwidth, the bandwidth's size may become larger than "data_chunk_size".
             // The bandwidth's value should be decreased prior the next iteration.
-            bandwidth -= dataChunk._size_in_mb;
+            bandwidth -= conversion._dataPool[i]._size_in_mb;
         }
     }
 
@@ -117,7 +115,7 @@ async function pipeData(conversion: Conversion, dataLoaderPath: string, options:
     }
 
     const loaderProcess: ChildProcess = fork(dataLoaderPath, options);
-    const bandwidth: number[] = getChunksToLoad(conversion);
+    const bandwidth: number[] = fillBandwidth(conversion);
     const chunksToLoad: any[] = bandwidth.map((index: number) => conversion._dataPool[index]);
 
     loaderProcess.on('message', async (signal: any) => {
