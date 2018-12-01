@@ -67,7 +67,7 @@ function fillBandwidth(conversion: Conversion): number[] {
     // Loop through the data pool from the beginning to the end.
     // Note, the data pool is created with predefined order, the order by data chunk size descending.
     // Note, the "bandwidth" variable represents an actual amount of data, that will be loaded during current COPY operation.
-    for (let i: number = 0, bandwidth = 0; i < conversion._dataPool.length; ++i) {
+    for (let i: number = 0, bandwidth: number = 0; i < conversion._dataPool.length; ++i) {
         // Check if current chunk has already been marked as "processed".
         // If yes, then continue to the next iteration.
         if (conversion._dataPool[i]._processed === false) {

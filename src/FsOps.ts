@@ -81,11 +81,11 @@ export function log(conversion: Conversion, log: string | NodeJS.ErrnoException,
  */
 export function readConfig(baseDir: string, configFileName: string = 'config.json'): Promise<any> {
     return new Promise<any>(resolve => {
-        const strPathToConfig = path.join(baseDir, 'config', configFileName);
+        const pathToConfig: string = path.join(baseDir, 'config', configFileName);
 
-        fs.readFile(strPathToConfig, (error: Error, data: Buffer) => {
+        fs.readFile(pathToConfig, (error: Error, data: Buffer) => {
             if (error) {
-                console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ strPathToConfig }`);
+                console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ pathToConfig }`);
                 process.exit();
             }
 
@@ -107,11 +107,11 @@ export function readExtraConfig(config: any, baseDir: string): Promise<any> {
             return resolve(config);
         }
 
-        const strPathToExtraConfig = path.join(baseDir, 'config', 'extra_config.json');
+        const pathToExtraConfig: string = path.join(baseDir, 'config', 'extra_config.json');
 
-        fs.readFile(strPathToExtraConfig, (error: Error, data: Buffer) => {
+        fs.readFile(pathToExtraConfig, (error: Error, data: Buffer) => {
             if (error) {
-                console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ strPathToExtraConfig }`);
+                console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ pathToExtraConfig }`);
                 process.exit();
             }
 
