@@ -63,6 +63,8 @@ function processSend(x: any): void {
 
 /**
  * Deletes given record from the data-pool.
+ * Note, deleteChunk() function is invoked in multiple place, and in some of them,
+ * the existing PoolClient instance can be reused.
  */
 async function deleteChunk(conv: Conversion, dataPoolId: number, client: PoolClient): Promise<void> {
     const sql: string = `DELETE FROM "${ conv._schema }"."data_pool_${ conv._schema }${ conv._mySqlDbName }" WHERE id = ${ dataPoolId };`;
@@ -73,7 +75,7 @@ async function deleteChunk(conv: Conversion, dataPoolId: number, client: PoolCli
     } catch (error) {
         await generateError(conv, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
     } finally {
-        dbAccess.releaseDbClient(client);
+        await dbAccess.releaseDbClient(client);
     }
 }
 
