@@ -143,11 +143,9 @@ async function populateTableWorker(
             const bufferStream: BufferStream = new BufferStream(buffer);
 
             copyStream.on('end', () => {
-                /*
-                 * COPY FROM STDIN does not return the number of rows inserted.
-                 * But the transactional behavior still applies (no records inserted if at least one failed).
-                 * That is why in case of 'on end' the rowsInChunk value is actually the number of records inserted.
-                 */
+                // COPY FROM STDIN does not return the number of rows inserted.
+                // But the transactional behavior still applies (no records inserted if at least one failed).
+                // That is why in case of 'on end' the rowsInChunk value is actually the number of records inserted.
                 processSend(new MessageToMaster(tableName, rowsInChunk, rowsCnt));
                 return deleteChunk(conv, dataPoolId, client).then(() => resolvePopulateTableWorker());
             });
