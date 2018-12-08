@@ -62,7 +62,17 @@ export default async (conversion: Conversion): Promise<Conversion> => {
     await getMySqlVersion(conversion);
     const dbAccess: DBAccess = new DBAccess(conversion);
     const haveTablesLoaded: boolean = await migrationStateManager.get(conversion, 'tables_loaded');
-    const sql: string = `SHOW FULL TABLES IN \`${ conversion._mySqlDbName }\`;`;
+    let sql: string = `SHOW FULL TABLES IN \`${ conversion._mySqlDbName }\` WHERE 1 = 1`;
+
+    if (conversion._includeTables.length !== 0) {
+        sql += ` AND Tables_in_${ conversion._mySqlDbName } IN(${ conversion._includeTables.map((table: string) => `"${table}"`).join(',') })`;
+    }
+
+    if (conversion._excludeTables.length !== 0) {
+        sql += ` AND Tables_in_${ conversion._mySqlDbName } NOT IN(${ conversion._excludeTables.map((table: string) => `"${table}"`).join(',') })`;
+    }
+
+    sql += ';';
     const result: DBAccessQueryResult = await dbAccess.query('StructureLoader::default', sql, DBVendors.MYSQL, true, false);
     let tablesCnt: number = 0;
     let viewsCnt: number = 0;
@@ -71,7 +81,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
     result.data.forEach((row: any) => {
         let relationName: string = row[`Tables_in_${ conversion._mySqlDbName }`];
 
-        if (row.Table_type === 'BASE TABLE' && conversion._excludeTables.indexOf(relationName) === -1) {
+        if (row.Table_type === 'BASE TABLE') {
             relationName = extraConfigProcessor.getTableName(conversion, relationName, false);
             conversion._tablesToMigrate.push(relationName);
             conversion._dicTables[relationName] = new Table(`${ conversion._logsDirPath }/${ relationName }.log`);
