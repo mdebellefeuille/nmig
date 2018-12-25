@@ -53,25 +53,26 @@ const isDateTime = (type: string): boolean => {
 /**
  * Arranges columns data before loading.
  */
-export default (arrTableColumns: any[], mysqlVersion: string | number): string => {
+export default (originalTableName: string, arrTableColumns: any[], mysqlVersion: string | number): string => {
     let strRetVal: string = '';
     const wkbFunc: string = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
 
     arrTableColumns.forEach((column: any) => {
         const field: string = column.Field;
         const type: string  = column.Type;
+        const fullColumnName: string = `\`${ originalTableName }\`.\`${ field }\``;
 
         if (isSpacial(type)) {
             // Apply HEX(ST_AsWKB(...)) due to the issue, described at https://bugs.mysql.com/bug.php?id=69798
-            strRetVal += `HEX(${ wkbFunc }(\`${ field }\`)) AS \`${ field }\`,`;
+            strRetVal += `HEX(${ wkbFunc }(${ fullColumnName })) AS \`${ field }\`,`;
         } else if (isBinary(type)) {
-            strRetVal += `HEX(\`${ field }\`) AS \`${ field }\`,`;
+            strRetVal += `HEX(${ fullColumnName }) AS \`${ field }\`,`;
         } else if (isBit(type)) {
-            strRetVal += `BIN(\`${ field }\`) AS \`${ field }\`,`;
+            strRetVal += `BIN(${ fullColumnName }) AS \`${ field }\`,`;
         } else if (isDateTime(type)) {
-            strRetVal += `IF(\`${ field }\` IN('0000-00-00', '0000-00-00 00:00:00'), '-INFINITY', CAST(\`${ field }\` AS CHAR)) AS \`${ field }\`,`;
+            strRetVal += `IF(${ fullColumnName } IN('0000-00-00', '0000-00-00 00:00:00'), '-INFINITY', CAST(${ fullColumnName } AS CHAR)) AS \`${ field }\`,`;
         } else {
-            strRetVal += `\`${ field }\` AS \`${ field }\`,`;
+            strRetVal += `${ fullColumnName } AS \`${ field }\`,`;
         }
     });
 

@@ -27,6 +27,18 @@ import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 
 /**
+ * Returns primary key column name of given table.
+ */
+function getPkColumn(conversion: Conversion, tableName: string): string {
+    const pk: any = conversion
+        ._dicTables[tableName]
+        .arrTableColumns
+        .find((c: any) => c.Key === 'PRI' && c.Extra === 'auto_increment');
+
+    return pk ? `"${ pk.Field }"` : 'null';
+}
+
+/**
  * Prepares an array of tables and chunk offsets.
  */
 export default async (conversion: Conversion, tableName: string, haveDataChunksProcessed: boolean): Promise<void> => {
@@ -44,7 +56,7 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     const sizeQueryResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, true, true);
 
     const tableSizeInMb: number = +sizeQueryResult.data[0].size_in_mb;
-    const strSelectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion);
+    const strSelectFieldList: string = arrangeColumnsData(originalTableName, conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion);
     sql = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
     const countResult: DBAccessQueryResult = await dbAccess.query(
         logTitle,
@@ -63,10 +75,12 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     const msg: string = `\t--[prepareDataChunks] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
 
+    const pkColumn: any = getPkColumn(conversion, tableName);
+
     for (let offset: number = 0; offset < rowsCnt; offset += rowsInChunk) {
         arrDataPoolPromises.push(new Promise<void>(async resolveDataUnit => {
             const strJson: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }",
-                "_offset":${ offset },"_rowsInChunk":${ rowsInChunk },"_rowsCnt":${ rowsCnt }}`;
+                "_offset":${ offset },"_rowsInChunk":${ rowsInChunk },"_rowsCnt":${ rowsCnt },"_pk":${ pkColumn }}`;
 
             // Define current data chunk size in MB.
             // If there is only one chunk, then its size is equal to the table size.
